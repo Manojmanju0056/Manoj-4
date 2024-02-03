@@ -1,0 +1,60 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract CoffeeToken is ERC20, Ownable {
+    event CoffeeRedeemed(address indexed coffeeLover, string coffeeType, uint256 cupsRedeemed);
+    event TokensTransferred(address indexed from, address indexed to, uint256 amount);
+
+    mapping(string => uint256) private coffeeRates;
+
+    constructor(address initialOwner) ERC20("COFFEE", "CFE") Ownable(initialOwner) {
+        // Set initial rates for each type of coffee
+        coffeeRates["filter"] = 50;
+        coffeeRates["hot"] = 80;
+        coffeeRates["cold"] = 100;
+    }
+
+    function mintingTokens(address to, uint256 total) public onlyOwner {
+        _mint(to, total);
+    }
+
+    function BurningTokens(uint256 total) public {
+        require(total > 0, "The total to destroy must be greater than zero");
+        require(balanceOf(msg.sender) >= total, "Insufficient funds for token destruction");
+        _burn(msg.sender, total);
+    }
+
+    function redeemingCoffee(string memory coffeeType, uint256 cups) public {
+        require(cups > 0, "Invalid number of cups to redeem");
+        require(balanceOf(msg.sender) >= cups * coffeeRates[coffeeType], "Insufficient funds to redeem coffee");
+
+        uint256 coffeeCost = cups * coffeeRates[coffeeType];
+        _burn(msg.sender, coffeeCost);
+
+        emit CoffeeRedeemed(msg.sender, coffeeType, cups);
+    }
+
+    function transferingTokens(address to, uint256 total) external {
+        require(to != address(0), "Invalid recipient address provided");
+        require(balanceOf(msg.sender) >= total, "Insufficient funds for token transfer");
+
+        _transfer(msg.sender, to, total);
+
+        emit TokensTransferred(msg.sender, to, total);
+    }
+
+    function getBalance(address account) external view returns (uint256) {
+        return balanceOf(account);
+    }
+
+    function getTotalSupply() external view returns (uint256) {
+        return totalSupply();
+    }
+
+    function getRateForCoffee(string memory coffeeType) external view returns (uint256) {
+        return coffeeRates[coffeeType];
+    }
+}
